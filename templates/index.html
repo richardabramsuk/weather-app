@@ -25,6 +25,7 @@
             <button id="byCity" class="btn btn-primary">Search</button>
             <button id="byLocation" class="btn btn-secondary">📍 My Location</button>
             <button id="byHouse" class="btn btn-secondary">🏠 House</button>
+            <button id="workTravel" class="btn btn-secondary">🚗 Work Travel</button>
           </div>
         </div>
       </div>
@@ -41,6 +42,11 @@
       <section class="hourly-forecast-section">
         <h2 class="section-title">24-Hour Forecast</h2>
         <div id="hourly-forecast" class="hourly-table-container"></div>
+      </section>
+      
+      <section class="travel-section" id="travel-section" style="display: none;">
+        <h2 class="section-title">Work Travel</h2>
+        <div id="travel-info" class="travel-container"></div>
       </section>
       
       <section class="rainfall-section">
@@ -98,6 +104,124 @@ function getRainIntensity(probability, amount) {
   }
 }
 
+function getWeatherDescription(weathercode) {
+  const descriptions = {
+    0: '☀️ Clear sky',
+    1: '🌤️ Mainly clear',
+    2: '⛅ Partly cloudy',
+    3: '☁️ Overcast',
+    45: '🌫️ Foggy',
+    48: '🌫️ Depositing rime fog',
+    51: '🌦️ Light drizzle',
+    53: '🌦️ Moderate drizzle',
+    55: '🌦️ Dense drizzle',
+    56: '🌧️ Light freezing drizzle',
+    57: '🌧️ Dense freezing drizzle',
+    61: '🌧️ Slight rain',
+    63: '🌧️ Moderate rain',
+    65: '🌧️ Heavy rain',
+    66: '🌧️ Light freezing rain',
+    67: '🌧️ Heavy freezing rain',
+    71: '🌨️ Slight snow',
+    73: '🌨️ Moderate snow',
+    75: '🌨️ Heavy snow',
+    77: '🌨️ Snow grains',
+    80: '🌦️ Slight rain showers',
+    81: '🌧️ Moderate rain showers',
+    82: '🌧️ Violent rain showers',
+    85: '🌨️ Slight snow showers',
+    86: '🌨️ Heavy snow showers',
+    95: '⛈️ Thunderstorm',
+    96: '⛈️ Thunderstorm with slight hail',
+    99: '⛈️ Thunderstorm with heavy hail'
+  };
+  return descriptions[weathercode] || '🌤️ Partly cloudy';
+}
+
+function generateRainForecast(hourlyData) {
+  if (!hourlyData || hourlyData.length === 0) {
+    return '<div class="no-rain-data">No rain forecast data available</div>';
+  }
+
+  const currentHour = new Date().getHours();
+  const nextRain = hourlyData.find((hour, index) => {
+    const hourTime = new Date(hour.time).getHours();
+    return hour.precipitation > 0.1 || hour.precipitation_probability > 20;
+  });
+
+  const currentRain = hourlyData.find(hour => {
+    const hourTime = new Date(hour.time).getHours();
+    return hourTime === currentHour && (hour.precipitation > 0.1 || hour.precipitation_probability > 20);
+  });
+
+  const dryTime = hourlyData.find((hour, index) => {
+    const hourTime = new Date(hour.time).getHours();
+    return hourTime > currentHour && hour.precipitation <= 0.1 && hour.precipitation_probability <= 20;
+  });
+
+  let forecastHTML = '<div class="rain-info">';
+  
+  if (currentRain) {
+    const intensity = getRainIntensity(currentRain.precipitation_probability, currentRain.precipitation);
+    forecastHTML += `
+      <div class="current-rain">
+        <div class="rain-icon">${intensity.icon}</div>
+        <div class="rain-details">
+          <div class="rain-status">Currently raining</div>
+          <div class="rain-intensity">${getRainIntensityText(currentRain.precipitation)}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (nextRain && !currentRain) {
+    const hoursUntilRain = new Date(nextRain.time).getHours() - currentHour;
+    const intensity = getRainIntensity(nextRain.precipitation_probability, nextRain.precipitation);
+    forecastHTML += `
+      <div class="next-rain">
+        <div class="rain-icon">${intensity.icon}</div>
+        <div class="rain-details">
+          <div class="rain-status">Rain in ${hoursUntilRain} hour${hoursUntilRain !== 1 ? 's' : ''}</div>
+          <div class="rain-intensity">${getRainIntensityText(nextRain.precipitation)} expected</div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (dryTime && (currentRain || nextRain)) {
+    const hoursUntilDry = new Date(dryTime.time).getHours() - currentHour;
+    forecastHTML += `
+      <div class="dry-time">
+        <div class="dry-icon">☀️</div>
+        <div class="dry-details">
+          <div class="dry-status">Dry in ${hoursUntilDry} hour${hoursUntilDry !== 1 ? 's' : ''}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (!currentRain && !nextRain) {
+    forecastHTML += `
+      <div class="no-rain">
+        <div class="no-rain-icon">☀️</div>
+        <div class="no-rain-details">
+          <div class="no-rain-status">No rain expected</div>
+        </div>
+      </div>
+    `;
+  }
+
+  forecastHTML += '</div>';
+  return forecastHTML;
+}
+
+function getRainIntensityText(amount) {
+  if (amount >= 2.0) return 'Heavy rain';
+  if (amount >= 0.5) return 'Moderate rain';
+  if (amount >= 0.1) return 'Light rain';
+  return 'Drizzle';
+}
+
 async function fetchByCity() {
   const city = document.getElementById('city').value.trim();
   if(!city){ setStatus('Please enter a city.'); return; }
@@ -107,7 +231,14 @@ async function fetchByCity() {
     render(data);
     setStatus('');
   } catch (e) {
-    setStatus('City not found.');
+    console.error('Weather fetch error:', e);
+    if (e.message.includes('404')) {
+      setStatus('City not found.');
+    } else if (e.message.includes('500')) {
+      setStatus('Server error. Please try again.');
+    } else {
+      setStatus('Failed to retrieve weather. Please try again.');
+    }
   }
 }
 
@@ -121,7 +252,8 @@ async function fetchByLocation() {
       render(data);
       setStatus('');
     } catch(e){
-      setStatus('Failed to retrieve weather.');
+      console.error('Location weather error:', e);
+      setStatus('Failed to retrieve weather for your location.');
     }
   }, () => setStatus('Location permission denied.'));
 }
@@ -133,7 +265,22 @@ async function fetchByHouse() {
     render(data);
     setStatus('');
   } catch (e) {
+    console.error('House weather error:', e);
     setStatus('Failed to retrieve weather for Newton Mearns.');
+  }
+}
+
+async function fetchWorkTravel() {
+  console.log('Work Travel button clicked');
+  setStatus('Loading travel information…');
+  try {
+    const data = await getJSON(`/api/travel?from=G77%205PG&to=KICK%20ICT`);
+    console.log('Travel data received:', data);
+    renderTravel(data);
+    setStatus('');
+  } catch (e) {
+    console.error('Travel error:', e);
+    setStatus('Failed to retrieve travel information.');
   }
 }
 
@@ -144,6 +291,7 @@ function setStatus(msg){
 function render(data){
   const cur = data.current || {};
   const loc = data.location || {};
+  const hourlyData = data.hourly_24h || [];
   const currentEl = document.getElementById('current');
   const satelliteEl = document.getElementById('satellite');
   const locText = loc.name ? `${loc.name}${loc.admin1? ', ' + loc.admin1 : ''}${loc.country? ', ' + loc.country : ''}`
@@ -158,6 +306,8 @@ function render(data){
       <div class="temp-display">
         <div class="temp-main">${fmtTemp(cur.temperature_c)}</div>
         <div class="temp-secondary">${cur.temperature_f}°F</div>
+        <div class="weather-description">${getWeatherDescription(cur.weathercode)}</div>
+        <div class="feels-like">Feels like ${fmtTemp(cur.apparent_temperature_c)}</div>
       </div>
       <div class="weather-stats">
         <div class="stat-item">
@@ -168,7 +318,18 @@ function render(data){
           <span class="stat-label">Direction</span>
           <span class="stat-value">${cur.winddirection ?? '—'}°</span>
         </div>
+        <div class="stat-item">
+          <span class="stat-label">Humidity</span>
+          <span class="stat-value">${cur.relative_humidity ?? '—'}%</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Rain</span>
+          <span class="stat-value">${cur.precipitation ?? '0'} mm</span>
+        </div>
       </div>
+    </div>
+    <div class="rain-forecast">
+      ${generateRainForecast(hourlyData)}
     </div>
   `;
 
@@ -234,7 +395,6 @@ function render(data){
 
   // Render 24-hour forecast table
   const hourlyEl = document.getElementById('hourly-forecast');
-  const hourlyData = data.hourly_24h || [];
   
   if (hourlyData.length > 0) {
     hourlyEl.innerHTML = `
@@ -364,9 +524,171 @@ function render(data){
   `).join('');
 }
 
+function renderTravel(data) {
+  console.log('Rendering travel data:', data);
+  const travelEl = document.getElementById('travel-info');
+  const travelSection = document.getElementById('travel-section');
+  
+  console.log('Travel elements found:', { travelEl, travelSection });
+  
+  // Show the travel section
+  if (travelSection) {
+    travelSection.style.display = 'block';
+    console.log('Travel section shown');
+  }
+  
+  if (data && data.routes) {
+    travelEl.innerHTML = `
+      <div class="travel-card">
+        <div class="travel-header">
+          <div class="header-left">
+            <h3>🚗 G77 5PG → KICK ICT</h3>
+            <div class="travel-time">
+              <span class="time-main">${data.routes.outbound.duration}</span>
+              <span class="time-traffic">${data.routes.outbound.traffic_status}</span>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="map-controls">
+              <a href="https://www.google.com/maps/dir/G77+5PG/KICK+ICT" target="_blank" class="map-link">
+                🗺️ To Work
+              </a>
+              <a href="https://www.google.com/maps/dir/KICK+ICT/G77+5PG" target="_blank" class="map-link secondary">
+                🏠 To Home
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        <div class="travel-map">
+          <div class="map-container">
+            <div class="route-map">
+              <div class="map-header">
+                <div class="route-line">
+                  <div class="start-point">🏠</div>
+                  <div class="route-path">
+                    <div class="traffic-indicator moderate"></div>
+                  </div>
+                  <div class="end-point">🏢</div>
+                </div>
+                <div class="route-stats">
+                  <div class="stat">12.3 km</div>
+                  <div class="stat">25 min</div>
+                </div>
+              </div>
+              
+              <div class="map-visual">
+                <div class="map-area">
+                  <div class="location start">G77 5PG</div>
+                  <div class="route-visual">
+                    <div class="road-segment normal"></div>
+                    <div class="road-segment slow" title="M77 - Slow traffic"></div>
+                    <div class="road-segment normal"></div>
+                    <div class="road-segment minor-delay" title="A77 - Minor delays"></div>
+                    <div class="road-segment normal"></div>
+                  </div>
+                  <div class="location end">KICK ICT</div>
+                </div>
+                
+                <div class="traffic-legend">
+                  <div class="legend-item">
+                    <div class="legend-color normal"></div>
+                    <span>Normal</span>
+                  </div>
+                  <div class="legend-item">
+                    <div class="legend-color slow"></div>
+                    <span>Slow</span>
+                  </div>
+                  <div class="legend-item">
+                    <div class="legend-color delay"></div>
+                    <span>Delays</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+
+        </div>
+        
+        <div class="travel-details">
+          <div class="route-info">
+            <div class="route-item">
+              <span class="route-label">Distance:</span>
+              <span class="route-value">${data.routes.outbound.distance}</span>
+            </div>
+            <div class="route-item">
+              <span class="route-label">Duration:</span>
+              <span class="route-value">${data.routes.outbound.duration}</span>
+            </div>
+            <div class="route-item">
+              <span class="route-label">Traffic:</span>
+              <span class="route-value traffic-${data.routes.outbound.traffic_level}">${data.routes.outbound.traffic_status}</span>
+            </div>
+          </div>
+          
+          <div class="traffic-alerts">
+            ${data.routes.outbound.alerts.map(alert => `
+              <div class="alert-item ${alert.severity}">
+                <span class="alert-icon">⚠️</span>
+                <span class="alert-text">${alert.description}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        
+        <div class="return-route">
+          <h4>🔄 Return Journey: KICK ICT → G77 5PG</h4>
+          <div class="return-info">
+            <div class="return-item">
+              <span class="return-label">Duration:</span>
+              <span class="return-value">${data.routes.return.duration}</span>
+            </div>
+            <div class="return-item">
+              <span class="return-label">Traffic:</span>
+              <span class="return-value traffic-${data.routes.return.traffic_level}">${data.routes.return.traffic_status}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    if (travelEl) {
+      travelEl.innerHTML = `
+        <div class="travel-card">
+          <div class="travel-error">
+            <div class="error-icon">🚗</div>
+            <h4>Travel Information Unavailable</h4>
+            <p>Unable to load travel information at this time.</p>
+            <a href="https://www.google.com/maps/dir/G77+5PG/KICK+ICT" target="_blank" class="map-link">
+              Check Route on Google Maps
+            </a>
+          </div>
+        </div>
+      `;
+    }
+  }
+  
+  // Scroll to travel section
+  if (travelSection) {
+    travelSection.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
 document.getElementById('byCity').addEventListener('click', fetchByCity);
 document.getElementById('byLocation').addEventListener('click', fetchByLocation);
 document.getElementById('byHouse').addEventListener('click', fetchByHouse);
+// Check if work travel button exists and add event listener
+const workTravelBtn = document.getElementById('workTravel');
+if (workTravelBtn) {
+  console.log('Work Travel button found, adding event listener');
+  workTravelBtn.addEventListener('click', function() {
+    console.log('Work Travel button clicked - event listener working');
+    fetchWorkTravel();
+  });
+} else {
+  console.error('Work Travel button not found!');
+}
 
 // Handle map loading and errors
 let mapLoadTimeout;
