@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Weather — Local App</title>
+  <title>Richard's Cool Weather App</title>
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="manifest" href="/static/manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,15 +12,32 @@
 </head>
 <body>
   <div class="container">
-    <h1>Weather</h1>
-    <div class="controls">
-      <input id="city" type="text" placeholder="Enter a city (e.g., Glasgow)" />
-      <button id="byCity">Get Weather</button>
-      <button id="byLocation">Use My Location</button>
-    </div>
-    <div id="status" class="status"></div>
-    <div id="current" class="card"></div>
-    <div id="forecast" class="grid"></div>
+    <header class="header">
+      <h1>Richard's Cool Weather App</h1>
+      <p class="subtitle">Get current weather and forecasts</p>
+    </header>
+    
+    <main class="main-content">
+      <div class="search-section">
+        <div class="search-container">
+          <input id="city" type="text" placeholder="Enter a city name..." class="search-input" />
+          <div class="button-group">
+            <button id="byCity" class="btn btn-primary">Search</button>
+            <button id="byLocation" class="btn btn-secondary">📍 My Location</button>
+            <button id="byHouse" class="btn btn-secondary">🏠 House</button>
+          </div>
+        </div>
+      </div>
+      
+      <div id="status" class="status"></div>
+      
+      <div id="current" class="weather-card current-weather"></div>
+      
+      <section class="forecast-section">
+        <h2 class="section-title">5-Day Forecast</h2>
+        <div id="forecast" class="forecast-grid"></div>
+      </section>
+    </main>
   </div>
 
 <script>
@@ -61,6 +78,17 @@ async function fetchByLocation() {
   }, () => setStatus('Location permission denied.'));
 }
 
+async function fetchByHouse() {
+  setStatus('Loading weather for Newton Mearns…');
+  try {
+    const data = await getJSON(`/api/weather?city=Newton%20Mearns`);
+    render(data);
+    setStatus('');
+  } catch (e) {
+    setStatus('Failed to retrieve weather for Newton Mearns.');
+  }
+}
+
 function setStatus(msg){
   document.getElementById('status').textContent = msg || '';
 }
@@ -71,13 +99,27 @@ function render(data){
   const currentEl = document.getElementById('current');
   const locText = loc.name ? `${loc.name}${loc.admin1? ', ' + loc.admin1 : ''}${loc.country? ', ' + loc.country : ''}`
                            : (loc.lat && loc.lon ? `Lat ${loc.lat.toFixed(2)}, Lon ${loc.lon.toFixed(2)}` : 'Unknown');
+  
   currentEl.innerHTML = `
-    <h2>${locText}</h2>
-    <div class="current-row">
-      <div><strong>Temperature:</strong> ${fmtTemp(cur.temperature_c)} (${cur.temperature_f}°F)</div>
-      <div><strong>Wind:</strong> ${cur.windspeed ?? '—'} km/h</div>
-      <div><strong>Direction:</strong> ${cur.winddirection ?? '—'}°</div>
-      <div><strong>Time:</strong> ${cur.time ? new Date(cur.time).toLocaleString() : '—'}</div>
+    <div class="current-header">
+      <h2 class="location">${locText}</h2>
+      <div class="current-time">${cur.time ? new Date(cur.time).toLocaleString() : '—'}</div>
+    </div>
+    <div class="current-details">
+      <div class="temp-display">
+        <div class="temp-main">${fmtTemp(cur.temperature_c)}</div>
+        <div class="temp-secondary">${cur.temperature_f}°F</div>
+      </div>
+      <div class="weather-stats">
+        <div class="stat-item">
+          <span class="stat-label">Wind</span>
+          <span class="stat-value">${cur.windspeed ?? '—'} km/h</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Direction</span>
+          <span class="stat-value">${cur.winddirection ?? '—'}°</span>
+        </div>
+      </div>
     </div>
   `;
 
@@ -92,18 +134,29 @@ function render(data){
 
   const forecastEl = document.getElementById('forecast');
   forecastEl.innerHTML = days.map(d => `
-    <div class="card">
-      <div class="date">${fmtDate(d.date)}</div>
-      <div>Max: ${fmtTemp(d.tmax)}</div>
-      <div>Min: ${fmtTemp(d.tmin)}</div>
-      <div>Precip: ${d.precip != null ? d.precip.toFixed(1) + ' mm' : '—'}</div>
-      <div>Wind: ${d.wind != null ? d.wind.toFixed(0) + ' km/h' : '—'}</div>
+    <div class="forecast-card">
+      <div class="forecast-date">${fmtDate(d.date)}</div>
+      <div class="forecast-temps">
+        <div class="temp-high">${fmtTemp(d.tmax)}</div>
+        <div class="temp-low">${fmtTemp(d.tmin)}</div>
+      </div>
+      <div class="forecast-details">
+        <div class="detail-item">
+          <span class="detail-icon">💧</span>
+          <span class="detail-value">${d.precip != null ? d.precip.toFixed(1) + ' mm' : '—'}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-icon">💨</span>
+          <span class="detail-value">${d.wind != null ? d.wind.toFixed(0) + ' km/h' : '—'}</span>
+        </div>
+      </div>
     </div>
   `).join('');
 }
 
 document.getElementById('byCity').addEventListener('click', fetchByCity);
 document.getElementById('byLocation').addEventListener('click', fetchByLocation);
+document.getElementById('byHouse').addEventListener('click', fetchByHouse);
 
 // Attempt to load by location on first visit for convenience
 fetchByLocation();
