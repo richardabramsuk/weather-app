@@ -37,13 +37,20 @@ def fetch_weather(lat: float, lon: float):
         "latitude": lat,
         "longitude": lon,
         "current_weather": True,
-        "hourly": "temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m",
+        "hourly": "temperature_2m,relative_humidity_2m,precipitation,precipitation_probability,wind_speed_10m,wind_direction_10m,apparent_temperature",
         "daily": "weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",
         "timezone": "auto"
     }
     r = requests.get(url, params=params, timeout=10)
     r.raise_for_status()
     return r.json()
+
+
+def get_satellite_image_url(lat: float, lon: float):
+    """Get satellite imagery URL for precipitation radar"""
+    # Using Windy's precipitation radar service which is more reliable
+    # This provides real-time precipitation radar imagery
+    return f"https://embed.windy.com/embed2.html?lat={lat}&lon={lon}&zoom=8&level=surface&overlay=rain&product=ecmwf&menu=&message=&marker=&calendar=&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=%C2%B0C&radarRange=-1"
 
 
 @app.route("/")
@@ -69,15 +76,43 @@ def api_weather():
         return jsonify({"error": "Missing coordinates or city"}), 400
 
     data = fetch_weather(lat, lon)
+    satellite_url = get_satellite_image_url(lat, lon)
 
     # Normalise a minimal payload
     current = data.get("current_weather", {})
     daily = data.get("daily", {})
     tz = data.get("timezone", "local")
 
+    # Get hourly data for next 24 hours
+    hourly = data.get("hourly", {})
+    hourly_times = hourly.get("time", [])
+    current_time = datetime.now().isoformat()
+    
+    # Find current hour index and get next 24 hours
+    current_hour_index = 0
+    for i, time_str in enumerate(hourly_times):
+        if time_str > current_time:
+            current_hour_index = i
+            break
+    
+    next_24_hours = []
+    for i in range(current_hour_index, min(current_hour_index + 24, len(hourly_times))):
+        next_24_hours.append({
+            "time": hourly_times[i],
+            "temperature_c": hourly.get("temperature_2m", [])[i] if i < len(hourly.get("temperature_2m", [])) else None,
+            "temperature_f": round(celsius_to_f(hourly.get("temperature_2m", [])[i]), 1) if i < len(hourly.get("temperature_2m", [])) and hourly.get("temperature_2m", [])[i] is not None else None,
+            "apparent_temperature_c": hourly.get("apparent_temperature", [])[i] if i < len(hourly.get("apparent_temperature", [])) else None,
+            "apparent_temperature_f": round(celsius_to_f(hourly.get("apparent_temperature", [])[i]), 1) if i < len(hourly.get("apparent_temperature", [])) and hourly.get("apparent_temperature", [])[i] is not None else None,
+            "wind_speed": hourly.get("wind_speed_10m", [])[i] if i < len(hourly.get("wind_speed_10m", [])) else None,
+            "wind_direction": hourly.get("wind_direction_10m", [])[i] if i < len(hourly.get("wind_direction_10m", [])) else None,
+            "precipitation": hourly.get("precipitation", [])[i] if i < len(hourly.get("precipitation", [])) else None,
+            "precipitation_probability": hourly.get("precipitation_probability", [])[i] if i < len(hourly.get("precipitation_probability", [])) else None
+        })
+
     resp = {
         "location": place or {"lat": lat, "lon": lon},
         "timezone": tz,
+        "satellite_url": satellite_url,
         "current": {
             "time": current.get("time"),
             "temperature_c": current.get("temperature"),
@@ -86,6 +121,7 @@ def api_weather():
             "winddirection": current.get("winddirection"),
             "weathercode": current.get("weathercode")
         },
+        "hourly_24h": next_24_hours,
         "daily": {
             "time": daily.get("time", []),
             "tmax_c": daily.get("temperature_2m_max", []),

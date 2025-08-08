@@ -33,6 +33,21 @@
       
       <div id="current" class="weather-card current-weather"></div>
       
+      <section class="satellite-section">
+        <h2 class="section-title">Precipitation Radar</h2>
+        <div id="satellite" class="satellite-container"></div>
+      </section>
+      
+      <section class="hourly-forecast-section">
+        <h2 class="section-title">24-Hour Forecast</h2>
+        <div id="hourly-forecast" class="hourly-table-container"></div>
+      </section>
+      
+      <section class="rainfall-section">
+        <h2 class="section-title">24-Hour Rainfall</h2>
+        <div id="rainfall-graph" class="rainfall-container"></div>
+      </section>
+      
       <section class="forecast-section">
         <h2 class="section-title">5-Day Forecast</h2>
         <div id="forecast" class="forecast-grid"></div>
@@ -49,6 +64,26 @@ async function getJSON(url) {
 
 function fmtTemp(c){ return c != null ? `${c.toFixed(1)}°C` : '—'; }
 function fmtDate(iso){ try { return new Date(iso).toLocaleDateString(); } catch { return iso; } }
+
+function formatHour(iso) {
+  try {
+    const date = new Date(iso);
+    return date.toLocaleTimeString('en-GB', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function getWindDirection(degrees) {
+  if (degrees == null) return '';
+  const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+  const index = Math.round(degrees / 22.5) % 16;
+  return directions[index];
+}
 
 async function fetchByCity() {
   const city = document.getElementById('city').value.trim();
@@ -97,6 +132,7 @@ function render(data){
   const cur = data.current || {};
   const loc = data.location || {};
   const currentEl = document.getElementById('current');
+  const satelliteEl = document.getElementById('satellite');
   const locText = loc.name ? `${loc.name}${loc.admin1? ', ' + loc.admin1 : ''}${loc.country? ', ' + loc.country : ''}`
                            : (loc.lat && loc.lon ? `Lat ${loc.lat.toFixed(2)}, Lon ${loc.lon.toFixed(2)}` : 'Unknown');
   
@@ -122,6 +158,174 @@ function render(data){
       </div>
     </div>
   `;
+
+  // Render satellite imagery
+  if (data.satellite_url) {
+    satelliteEl.innerHTML = `
+      <div class="satellite-card">
+        <div class="satellite-info">
+          <h3>Precipitation Radar - Live</h3>
+          <p>Real-time precipitation radar showing weather patterns around ${locText}</p>
+        </div>
+        <div class="satellite-map">
+          <iframe 
+            src="${data.satellite_url}" 
+            width="100%" 
+            height="400" 
+            frameborder="0" 
+            scrolling="no"
+            title="Precipitation Radar Map"
+            onload="handleMapLoad(this)"
+            onerror="handleMapError(this)">
+          </iframe>
+          <div class="map-loading" id="map-loading">
+            <div class="loading-spinner"></div>
+            <p>Loading precipitation radar...</p>
+            <button class="retry-btn" onclick="retryMapLoad()">Retry</button>
+          </div>
+        </div>
+        <div class="satellite-legend">
+          <div class="legend-item">
+            <span class="legend-color blue"></span>
+            <span>Light Rain</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color green"></span>
+            <span>Moderate Rain</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color yellow"></span>
+            <span>Heavy Rain</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color red"></span>
+            <span>Intense Rain</span>
+          </div>
+        </div>
+        <div class="satellite-note">
+          <p>💡 <strong>Tip:</strong> The radar shows precipitation intensity and movement. Blue areas indicate light rain, while red areas show heavy precipitation.</p>
+          <p>🔄 <strong>Alternative:</strong> If the radar doesn't load, you can <a href="${data.satellite_url}" target="_blank" class="external-link">open the weather map in a new tab</a>.</p>
+        </div>
+      </div>
+    `;
+  } else {
+    satelliteEl.innerHTML = `
+      <div class="satellite-card">
+        <div class="satellite-info">
+          <h3>Precipitation Radar</h3>
+          <p>Satellite imagery not available for this location</p>
+        </div>
+      </div>
+    `;
+  }
+
+  // Render 24-hour forecast table
+  const hourlyEl = document.getElementById('hourly-forecast');
+  const hourlyData = data.hourly_24h || [];
+  
+  if (hourlyData.length > 0) {
+    hourlyEl.innerHTML = `
+      <div class="hourly-table-card">
+        <div class="table-container">
+          <table class="hourly-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Temp (°C)</th>
+                <th>Feels Like (°C)</th>
+                <th>Wind (km/h)</th>
+                <th>Rain Chance</th>
+                <th>Rain (mm)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${hourlyData.map(hour => `
+                <tr>
+                  <td class="time-cell">${formatHour(hour.time)}</td>
+                  <td class="temp-cell">${fmtTemp(hour.temperature_c)}</td>
+                  <td class="feels-like-cell">${fmtTemp(hour.apparent_temperature_c)}</td>
+                  <td class="wind-cell">
+                    <div class="wind-info">
+                      <span class="wind-speed">${hour.wind_speed != null ? hour.wind_speed.toFixed(0) : '—'}</span>
+                      <span class="wind-direction">${hour.wind_direction != null ? getWindDirection(hour.wind_direction) : ''}</span>
+                    </div>
+                  </td>
+                  <td class="rain-chance-cell">
+                    <div class="rain-chance">
+                      <span class="chance-percent">${hour.precipitation_probability != null ? hour.precipitation_probability + '%' : '—'}</span>
+                      <div class="chance-bar">
+                        <div class="chance-fill" style="width: ${hour.precipitation_probability || 0}%"></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="rain-amount-cell">${hour.precipitation != null ? hour.precipitation.toFixed(1) : '—'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  } else {
+    hourlyEl.innerHTML = `
+      <div class="hourly-table-card">
+        <p class="no-data">Hourly forecast data not available</p>
+      </div>
+    `;
+  }
+
+  // Render rainfall graph
+  const rainfallEl = document.getElementById('rainfall-graph');
+  if (hourlyData.length > 0) {
+    const maxRainfall = Math.max(...hourlyData.map(h => h.precipitation || 0));
+    const graphHeight = 200;
+    
+    rainfallEl.innerHTML = `
+      <div class="rainfall-card">
+        <div class="rainfall-graph">
+          <div class="graph-container">
+            ${hourlyData.map((hour, index) => {
+              const height = maxRainfall > 0 ? (hour.precipitation || 0) / maxRainfall * graphHeight : 0;
+              return `
+                <div class="rainfall-bar" style="height: ${height}px">
+                  <div class="bar-tooltip">
+                    <div class="tooltip-time">${formatHour(hour.time)}</div>
+                    <div class="tooltip-rain">${hour.precipitation != null ? hour.precipitation.toFixed(1) + ' mm' : '0 mm'}</div>
+                    <div class="tooltip-chance">${hour.precipitation_probability != null ? hour.precipitation_probability + '% chance' : '—'}</div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+          <div class="graph-labels">
+            ${hourlyData.map((hour, index) => `
+              <div class="time-label">${index % 3 === 0 ? formatHour(hour.time) : ''}</div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="rainfall-summary">
+          <div class="summary-item">
+            <span class="summary-label">Total Rainfall:</span>
+            <span class="summary-value">${hourlyData.reduce((sum, hour) => sum + (hour.precipitation || 0), 0).toFixed(1)} mm</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Max Hourly:</span>
+            <span class="summary-value">${Math.max(...hourlyData.map(h => h.precipitation || 0)).toFixed(1)} mm</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Rainy Hours:</span>
+            <span class="summary-value">${hourlyData.filter(h => h.precipitation > 0).length} hours</span>
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    rainfallEl.innerHTML = `
+      <div class="rainfall-card">
+        <p class="no-data">Rainfall data not available</p>
+      </div>
+    `;
+  }
 
   const fc = data.daily || {};
   const days = (fc.time || []).map((t, i) => ({
@@ -157,6 +361,75 @@ function render(data){
 document.getElementById('byCity').addEventListener('click', fetchByCity);
 document.getElementById('byLocation').addEventListener('click', fetchByLocation);
 document.getElementById('byHouse').addEventListener('click', fetchByHouse);
+
+// Handle map loading and errors
+let mapLoadTimeout;
+
+function handleMapLoad(iframe) {
+  clearTimeout(mapLoadTimeout);
+  const loadingDiv = iframe.parentElement.querySelector('.map-loading');
+  if (loadingDiv) {
+    loadingDiv.style.display = 'none';
+  }
+  iframe.style.opacity = '1';
+}
+
+function handleMapError(iframe) {
+  clearTimeout(mapLoadTimeout);
+  const mapContainer = iframe.parentElement;
+  const loadingDiv = mapContainer.querySelector('.map-loading');
+  
+  if (loadingDiv) {
+    loadingDiv.innerHTML = `
+      <div class="map-error">
+        <div class="error-icon">🌧️</div>
+        <h4>Radar Unavailable</h4>
+        <p>Precipitation radar is currently unavailable for this location.</p>
+        <p>Please try again later or check the weather forecast above.</p>
+        <button class="retry-btn" onclick="retryMapLoad()">Try Again</button>
+      </div>
+    `;
+  }
+}
+
+function retryMapLoad() {
+  const iframe = document.querySelector('.satellite-map iframe');
+  if (iframe) {
+    const loadingDiv = iframe.parentElement.querySelector('.map-loading');
+    if (loadingDiv) {
+      loadingDiv.innerHTML = `
+        <div class="loading-spinner"></div>
+        <p>Loading precipitation radar...</p>
+        <button class="retry-btn" onclick="retryMapLoad()">Retry</button>
+      </div>
+    `;
+    }
+    iframe.src = iframe.src; // Reload the iframe
+    startMapLoadTimeout();
+  }
+}
+
+function startMapLoadTimeout() {
+  mapLoadTimeout = setTimeout(() => {
+    const iframe = document.querySelector('.satellite-map iframe');
+    const loadingDiv = document.getElementById('map-loading');
+    if (loadingDiv && iframe.style.opacity !== '1') {
+      loadingDiv.innerHTML = `
+        <div class="map-error">
+          <div class="error-icon">⏰</div>
+          <h4>Loading Timeout</h4>
+          <p>The radar map is taking longer than expected to load.</p>
+          <button class="retry-btn" onclick="retryMapLoad()">Try Again</button>
+        </div>
+      `;
+    }
+  }, 15000); // 15 second timeout
+}
+
+// Start timeout when page loads
+window.addEventListener('load', function() {
+  startMapLoadTimeout();
+});
 
 // Attempt to load by location on first visit for convenience
 fetchByLocation();

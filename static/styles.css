@@ -245,6 +245,461 @@ body {
   font-weight: 600;
 }
 
+/* Satellite Section */
+.satellite-section {
+  margin-top: 2rem;
+}
+
+.satellite-container {
+  margin-bottom: 2rem;
+}
+
+.satellite-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-light);
+}
+
+.satellite-info {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.satellite-info h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.satellite-info p {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.satellite-map {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-md);
+}
+
+.satellite-map {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-md);
+  background: var(--bg-primary);
+}
+
+.satellite-map iframe {
+  border-radius: var(--radius-lg);
+  background: var(--bg-primary);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  width: 100%;
+  height: 400px;
+}
+
+.map-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-light);
+  border-top: 3px solid var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.map-loading p {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin: 0 0 1rem 0;
+}
+
+.retry-btn {
+  padding: 0.5rem 1rem;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-btn:hover {
+  background: var(--accent-secondary);
+  transform: translateY(-1px);
+}
+
+.map-error {
+  text-align: center;
+  padding: 2rem;
+}
+
+.error-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.map-error h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.map-error p {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.satellite-legend {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  padding: 1rem;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--border-medium);
+}
+
+.legend-color.blue {
+  background: linear-gradient(45deg, #3b82f6, #60a5fa);
+}
+
+.legend-color.green {
+  background: linear-gradient(45deg, #10b981, #34d399);
+}
+
+.legend-color.yellow {
+  background: linear-gradient(45deg, #f59e0b, #fbbf24);
+}
+
+.legend-color.red {
+  background: linear-gradient(45deg, #ef4444, #f87171);
+}
+
+.satellite-note {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #dbeafe, #eff6ff);
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-md);
+}
+
+.satellite-note p {
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.5;
+}
+
+.satellite-note p:last-child {
+  margin-bottom: 0;
+}
+
+.external-link {
+  color: var(--accent-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.external-link:hover {
+  color: var(--accent-secondary);
+  text-decoration: underline;
+}
+
+/* Hourly Forecast Section */
+.hourly-forecast-section {
+  margin-top: 2rem;
+}
+
+.hourly-table-container {
+  margin-bottom: 2rem;
+}
+
+.hourly-table-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-light);
+  overflow-x: auto;
+}
+
+.table-container {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+}
+
+.hourly-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.hourly-table th {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-weight: 600;
+  padding: 1rem 0.75rem;
+  text-align: left;
+  border-bottom: 2px solid var(--border-light);
+  white-space: nowrap;
+}
+
+.hourly-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: middle;
+}
+
+.hourly-table tr:hover {
+  background: var(--bg-primary);
+}
+
+.time-cell {
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.temp-cell, .feels-like-cell {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.wind-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.wind-speed {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.wind-direction {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.rain-chance {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chance-percent {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chance-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--border-light);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.chance-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.rain-amount-cell {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Rainfall Section */
+.rainfall-section {
+  margin-top: 2rem;
+}
+
+.rainfall-container {
+  margin-bottom: 2rem;
+}
+
+.rainfall-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-light);
+}
+
+.rainfall-graph {
+  margin-bottom: 2rem;
+}
+
+.graph-container {
+  display: flex;
+  align-items: end;
+  gap: 2px;
+  height: 200px;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-light);
+  position: relative;
+}
+
+.rainfall-bar {
+  flex: 1;
+  background: linear-gradient(to top, #3b82f6, #60a5fa);
+  border-radius: 2px 2px 0 0;
+  min-width: 8px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rainfall-bar:hover {
+  background: linear-gradient(to top, #2563eb, #3b82f6);
+  transform: scaleY(1.05);
+}
+
+.bar-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text-primary);
+  color: white;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+  margin-bottom: 0.5rem;
+}
+
+.bar-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: var(--text-primary);
+}
+
+.rainfall-bar:hover .bar-tooltip {
+  opacity: 1;
+}
+
+.tooltip-time {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.tooltip-rain {
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+.tooltip-chance {
+  color: #94a3b8;
+  font-size: 0.7rem;
+}
+
+.graph-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+
+.time-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+  flex: 1;
+}
+
+.rainfall-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.summary-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.no-data {
+  text-align: center;
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: 2rem;
+}
+
 /* Forecast Section */
 .forecast-section {
   margin-top: 1rem;
@@ -366,6 +821,46 @@ body {
   
   .btn {
     width: 100%;
+  }
+  
+  .satellite-card {
+    padding: 1.5rem;
+  }
+  
+  .satellite-legend {
+    gap: 1rem;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .satellite-map iframe {
+    height: 300px;
+  }
+  
+  .hourly-table-card {
+    padding: 1rem;
+  }
+  
+  .hourly-table {
+    font-size: 0.75rem;
+  }
+  
+  .hourly-table th,
+  .hourly-table td {
+    padding: 0.5rem 0.25rem;
+  }
+  
+  .rainfall-card {
+    padding: 1rem;
+  }
+  
+  .graph-container {
+    height: 150px;
+  }
+  
+  .rainfall-summary {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 }
 
