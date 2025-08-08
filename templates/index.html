@@ -85,6 +85,19 @@ function getWindDirection(degrees) {
   return directions[index];
 }
 
+function getRainIntensity(probability, amount) {
+  // Determine rain intensity based on both probability and amount
+  if (probability >= 80 || amount >= 2.0) {
+    return { icon: '🌧️', intensity: 'heavy' };
+  } else if (probability >= 50 || amount >= 0.5) {
+    return { icon: '🌦️', intensity: 'moderate' };
+  } else if (probability >= 20 || amount >= 0.1) {
+    return { icon: '🌤️', intensity: 'light' };
+  } else {
+    return { icon: '☀️', intensity: 'none' };
+  }
+}
+
 async function fetchByCity() {
   const city = document.getElementById('city').value.trim();
   if(!city){ setStatus('Please enter a city.'); return; }
@@ -226,43 +239,35 @@ function render(data){
   if (hourlyData.length > 0) {
     hourlyEl.innerHTML = `
       <div class="hourly-table-card">
-        <div class="table-container">
-          <table class="hourly-table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Temp (°C)</th>
-                <th>Feels Like (°C)</th>
-                <th>Wind (km/h)</th>
-                <th>Rain Chance</th>
-                <th>Rain (mm)</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${hourlyData.map(hour => `
-                <tr>
-                  <td class="time-cell">${formatHour(hour.time)}</td>
-                  <td class="temp-cell">${fmtTemp(hour.temperature_c)}</td>
-                  <td class="feels-like-cell">${fmtTemp(hour.apparent_temperature_c)}</td>
-                  <td class="wind-cell">
-                    <div class="wind-info">
-                      <span class="wind-speed">${hour.wind_speed != null ? hour.wind_speed.toFixed(0) : '—'}</span>
-                      <span class="wind-direction">${hour.wind_direction != null ? getWindDirection(hour.wind_direction) : ''}</span>
-                    </div>
-                  </td>
-                  <td class="rain-chance-cell">
-                    <div class="rain-chance">
-                      <span class="chance-percent">${hour.precipitation_probability != null ? hour.precipitation_probability + '%' : '—'}</span>
-                      <div class="chance-bar">
-                        <div class="chance-fill" style="width: ${hour.precipitation_probability || 0}%"></div>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="rain-amount-cell">${hour.precipitation != null ? hour.precipitation.toFixed(1) : '—'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+        <div class="hourly-cards">
+          ${hourlyData.map(hour => {
+            const hasRain = (hour.precipitation_probability || 0) > 20 || (hour.precipitation || 0) > 0.1;
+            const rainIntensity = getRainIntensity(hour.precipitation_probability, hour.precipitation);
+            
+            return `
+              <div class="hourly-card ${hasRain ? 'has-rain' : ''}">
+                <div class="hour-time">${formatHour(hour.time)}</div>
+                <div class="hour-temps">
+                  <div class="hour-temp">${fmtTemp(hour.temperature_c)}</div>
+                  <div class="hour-feels-like">Feels ${fmtTemp(hour.apparent_temperature_c)}</div>
+                </div>
+                <div class="hour-wind">
+                  <div class="wind-icon">💨</div>
+                  <div class="wind-details">
+                    <div class="wind-speed">${hour.wind_speed != null ? hour.wind_speed.toFixed(0) : '—'} km/h</div>
+                    <div class="wind-direction">${hour.wind_direction != null ? getWindDirection(hour.wind_direction) : ''}</div>
+                  </div>
+                </div>
+                <div class="hour-rain">
+                  <div class="rain-icon">${rainIntensity.icon}</div>
+                  <div class="rain-details">
+                    <div class="rain-chance">${hour.precipitation_probability != null ? hour.precipitation_probability + '%' : '—'}</div>
+                    <div class="rain-amount">${hour.precipitation != null ? hour.precipitation.toFixed(1) + ' mm' : '0.0 mm'}</div>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
         </div>
       </div>
     `;
@@ -286,8 +291,9 @@ function render(data){
           <div class="graph-container">
             ${hourlyData.map((hour, index) => {
               const height = maxRainfall > 0 ? (hour.precipitation || 0) / maxRainfall * graphHeight : 0;
+              const rainIntensity = getRainIntensity(hour.precipitation_probability, hour.precipitation);
               return `
-                <div class="rainfall-bar" style="height: ${height}px">
+                <div class="rainfall-bar ${rainIntensity.intensity}" style="height: ${height}px">
                   <div class="bar-tooltip">
                     <div class="tooltip-time">${formatHour(hour.time)}</div>
                     <div class="tooltip-rain">${hour.precipitation != null ? hour.precipitation.toFixed(1) + ' mm' : '0 mm'}</div>
@@ -299,7 +305,7 @@ function render(data){
           </div>
           <div class="graph-labels">
             ${hourlyData.map((hour, index) => `
-              <div class="time-label">${index % 3 === 0 ? formatHour(hour.time) : ''}</div>
+              <div class="time-label">${index % 4 === 0 ? formatHour(hour.time) : ''}</div>
             `).join('')}
           </div>
         </div>
@@ -314,7 +320,7 @@ function render(data){
           </div>
           <div class="summary-item">
             <span class="summary-label">Rainy Hours:</span>
-            <span class="summary-value">${hourlyData.filter(h => h.precipitation > 0).length} hours</span>
+            <span class="summary-value">${hourlyData.filter(h => (h.precipitation || 0) > 0.1).length} hours</span>
           </div>
         </div>
       </div>

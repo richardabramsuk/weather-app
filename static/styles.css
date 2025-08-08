@@ -464,99 +464,98 @@ body {
 .hourly-table-card {
   background: var(--bg-card);
   border-radius: var(--radius-xl);
-  padding: 2rem;
+  padding: 1.5rem;
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--border-light);
-  overflow-x: auto;
 }
 
-.table-container {
-  overflow-x: auto;
+.hourly-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.hourly-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.hourly-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.hourly-card.has-rain {
+  background: linear-gradient(135deg, #dbeafe, #eff6ff);
+  border-color: #bfdbfe;
+}
+
+.hour-time {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.hour-temps {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: var(--bg-card);
   border-radius: var(--radius-md);
 }
 
-.hourly-table {
-  width: 100%;
-  border-collapse: collapse;
+.hour-temp {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.hour-feels-like {
   font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
-.hourly-table th {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-weight: 600;
-  padding: 1rem 0.75rem;
-  text-align: left;
-  border-bottom: 2px solid var(--border-light);
-  white-space: nowrap;
-}
-
-.hourly-table td {
+.hour-wind, .hour-rain {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
   padding: 0.75rem;
-  border-bottom: 1px solid var(--border-light);
-  vertical-align: middle;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
 }
 
-.hourly-table tr:hover {
-  background: var(--bg-primary);
+.wind-icon, .rain-icon {
+  font-size: 1.5rem;
+  width: 2rem;
+  text-align: center;
 }
 
-.time-cell {
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-}
-
-.temp-cell, .feels-like-cell {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.wind-info {
+.wind-details, .rain-details {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
 
-.wind-speed {
+.wind-speed, .rain-chance {
   font-weight: 600;
   color: var(--text-primary);
+  font-size: 0.875rem;
 }
 
-.wind-direction {
+.wind-direction, .rain-amount {
   font-size: 0.75rem;
   color: var(--text-secondary);
-}
-
-.rain-chance {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.chance-percent {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.chance-bar {
-  width: 100%;
-  height: 6px;
-  background: var(--border-light);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.chance-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.rain-amount-cell {
-  font-weight: 600;
-  color: var(--text-primary);
 }
 
 /* Rainfall Section */
@@ -600,9 +599,21 @@ body {
   transition: all 0.2s ease;
 }
 
+.rainfall-bar.light {
+  background: linear-gradient(to top, #60a5fa, #93c5fd);
+}
+
+.rainfall-bar.moderate {
+  background: linear-gradient(to top, #3b82f6, #60a5fa);
+}
+
+.rainfall-bar.heavy {
+  background: linear-gradient(to top, #1d4ed8, #3b82f6);
+}
+
 .rainfall-bar:hover {
-  background: linear-gradient(to top, #2563eb, #3b82f6);
   transform: scaleY(1.05);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .bar-tooltip {
@@ -841,13 +852,37 @@ body {
     padding: 1rem;
   }
   
-  .hourly-table {
-    font-size: 0.75rem;
+  .hourly-cards {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
   
-  .hourly-table th,
-  .hourly-table td {
-    padding: 0.5rem 0.25rem;
+  .hourly-card {
+    padding: 1rem;
+  }
+  
+  .hour-time {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .hour-temps {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .hour-temp {
+    font-size: 1.25rem;
+  }
+  
+  .hour-wind, .hour-rain {
+    padding: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .wind-icon, .rain-icon {
+    font-size: 1.25rem;
+    width: 1.5rem;
   }
   
   .rainfall-card {
