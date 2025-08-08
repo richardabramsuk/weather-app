@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Richard's Cool Weather App</title>
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="manifest" href="/static/manifest.json">
@@ -16,6 +16,16 @@
       <h1>Richard's Cool Weather App</h1>
       <p class="subtitle">Get current weather and forecasts</p>
     </header>
+    
+    <div class="section-navigation">
+      <button class="nav-btn" data-section="current">🌤️ Now</button>
+      <button class="nav-btn active" data-section="satellite">🌧️ Radar</button>
+      <button class="nav-btn" data-section="hourly-forecast">⏰ 24h Forecast</button>
+      <button class="nav-btn" data-section="rainfall-graph">📊 Rainfall</button>
+      <button class="nav-btn" data-section="forecast">📅 5-Day</button>
+      <button class="nav-btn" data-section="travel">🚗 Travel</button>
+      <button class="nav-btn scroll-top" onclick="scrollToTop()">⬆️ Top</button>
+    </div>
     
     <main class="main-content">
       <div class="search-section">
@@ -443,7 +453,7 @@ function render(data){
   const rainfallEl = document.getElementById('rainfall-graph');
   if (hourlyData.length > 0) {
     const maxRainfall = Math.max(...hourlyData.map(h => h.precipitation || 0));
-    const graphHeight = 200;
+    const graphHeight = 150;
     
     rainfallEl.innerHTML = `
       <div class="rainfall-card">
@@ -509,6 +519,7 @@ function render(data){
       <div class="forecast-temps">
         <div class="temp-high">${fmtTemp(d.tmax)}</div>
         <div class="temp-low">${fmtTemp(d.tmin)}</div>
+        <div class="temp-feels-like">Feels like ${fmtTemp(d.tmax)}</div>
       </div>
       <div class="forecast-details">
         <div class="detail-item">
@@ -688,6 +699,57 @@ if (workTravelBtn) {
   });
 } else {
   console.error('Work Travel button not found!');
+}
+
+// Section navigation functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const navBtns = document.querySelectorAll('.nav-btn');
+  const sections = {
+    'current': document.querySelector('#current'),
+    'satellite': document.querySelector('.satellite-section'),
+    'hourly-forecast': document.querySelector('.hourly-forecast-section'),
+    'rainfall-graph': document.querySelector('.rainfall-section'),
+    'forecast': document.querySelector('.forecast-section'),
+    'travel': document.querySelector('.travel-section')
+  };
+
+  navBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const targetSection = this.getAttribute('data-section');
+      
+      // Skip if it's the scroll-to-top button
+      if (this.classList.contains('scroll-top')) {
+        return;
+      }
+      
+      // Update active button
+      navBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      
+      // Scroll to section
+      if (sections[targetSection]) {
+        const element = sections[targetSection];
+        const navHeight = document.querySelector('.section-navigation').offsetHeight;
+        const elementPosition = element.offsetTop - navHeight - 20; // 20px extra padding
+        
+        window.scrollTo({
+          top: elementPosition,
+          behavior: 'smooth'
+        });
+      }
+    });
+  });
+  
+  // Auto-load home location on app start
+  fetchByHouse();
+});
+
+// Scroll to top function
+function scrollToTop() {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
 }
 
 // Handle map loading and errors

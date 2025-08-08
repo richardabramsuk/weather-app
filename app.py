@@ -31,6 +31,33 @@ def geocode_city(city: str):
     }
 
 
+@lru_cache(maxsize=256)
+def reverse_geocode(lat: float, lon: float):
+    # Use Open-Meteo's free reverse geocoding API
+    url = "https://geocoding-api.open-meteo.com/v1/reverse"
+    params = {"latitude": lat, "longitude": lon, "language": "en", "format": "json"}
+    try:
+        r = requests.get(url, params=params, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        return {
+            "name": data.get("name"),
+            "country": data.get("country"),
+            "admin1": data.get("admin1"),
+            "lat": lat,
+            "lon": lon
+        }
+    except:
+        # Fallback to coordinates if reverse geocoding fails
+        return {
+            "name": None,
+            "country": None,
+            "admin1": None,
+            "lat": lat,
+            "lon": lon
+        }
+
+
 def fetch_weather(lat: float, lon: float):
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
@@ -71,6 +98,9 @@ def api_weather():
             return jsonify({"error": "City not found"}), 404
         lat = place["lat"]
         lon = place["lon"]
+    elif lat is not None and lon is not None:
+        # Use reverse geocoding to get location name from coordinates
+        place = reverse_geocode(lat, lon)
 
     if lat is None or lon is None:
         return jsonify({"error": "Missing coordinates or city"}), 400
