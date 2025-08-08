@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Weather — Local App</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="/static/icon-180.png">
+</head>
+<body>
+  <div class="container">
+    <h1>Weather</h1>
+    <div class="controls">
+      <input id="city" type="text" placeholder="Enter a city (e.g., Glasgow)" />
+      <button id="byCity">Get Weather</button>
+      <button id="byLocation">Use My Location</button>
+    </div>
+    <div id="status" class="status"></div>
+    <div id="current" class="card"></div>
+    <div id="forecast" class="grid"></div>
+  </div>
+
+<script>
+async function getJSON(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+function fmtTemp(c){ return c != null ? `${c.toFixed(1)}°C` : '—'; }
+function fmtDate(iso){ try { return new Date(iso).toLocaleDateString(); } catch { return iso; } }
+
+async function fetchByCity() {
+  const city = document.getElementById('city').value.trim();
+  if(!city){ setStatus('Please enter a city.'); return; }
+  setStatus('Loading…');
+  try {
+    const data = await getJSON(`/api/weather?city=${encodeURIComponent(city)}`);
+    render(data);
+    setStatus('');
+  } catch (e) {
+    setStatus('City not found.');
+  }
+}
+
+async function fetchByLocation() {
+  if(!navigator.geolocation){ setStatus('Geolocation not available.'); return; }
+  setStatus('Getting location…');
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const {latitude, longitude} = pos.coords;
+    try {
+      const data = await getJSON(`/api/weather?lat=${latitude}&lon=${longitude}`);
+      render(data);
+      setStatus('');
+    } catch(e){
+      setStatus('Failed to retrieve weather.');
+    }
+  }, () => setStatus('Location permission denied.'));
+}
+
+function setStatus(msg){
+  document.getElementById('status').textContent = msg || '';
+}
+
+function render(data){
+  const cur = data.current || {};
+  const loc = data.location || {};
+  const currentEl = document.getElementById('current');
+  const locText = loc.name ? `${loc.name}${loc.admin1? ', ' + loc.admin1 : ''}${loc.country? ', ' + loc.country : ''}`
+                           : (loc.lat && loc.lon ? `Lat ${loc.lat.toFixed(2)}, Lon ${loc.lon.toFixed(2)}` : 'Unknown');
+  currentEl.innerHTML = `
+    <h2>${locText}</h2>
+    <div class="current-row">
+      <div><strong>Temperature:</strong> ${fmtTemp(cur.temperature_c)} (${cur.temperature_f}°F)</div>
+      <div><strong>Wind:</strong> ${cur.windspeed ?? '—'} km/h</div>
+      <div><strong>Direction:</strong> ${cur.winddirection ?? '—'}°</div>
+      <div><strong>Time:</strong> ${cur.time ? new Date(cur.time).toLocaleString() : '—'}</div>
+    </div>
+  `;
+
+  const fc = data.daily || {};
+  const days = (fc.time || []).map((t, i) => ({
+    date: t,
+    tmax: fc.tmax_c?.[i],
+    tmin: fc.tmin_c?.[i],
+    precip: fc.precip_sum_mm?.[i],
+    wind: fc.wind_max?.[i]
+  }));
+
+  const forecastEl = document.getElementById('forecast');
+  forecastEl.innerHTML = days.map(d => `
+    <div class="card">
+      <div class="date">${fmtDate(d.date)}</div>
+      <div>Max: ${fmtTemp(d.tmax)}</div>
+      <div>Min: ${fmtTemp(d.tmin)}</div>
+      <div>Precip: ${d.precip != null ? d.precip.toFixed(1) + ' mm' : '—'}</div>
+      <div>Wind: ${d.wind != null ? d.wind.toFixed(0) + ' km/h' : '—'}</div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('byCity').addEventListener('click', fetchByCity);
+document.getElementById('byLocation').addEventListener('click', fetchByLocation);
+
+// Attempt to load by location on first visit for convenience
+fetchByLocation();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function() {
+    navigator.serviceWorker.register("/static/service-worker.js");
+  });
+}
+</script>
+</body>
+</html>

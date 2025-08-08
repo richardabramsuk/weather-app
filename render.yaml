@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: weather-app-open-meteo
+    env: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: 5050
